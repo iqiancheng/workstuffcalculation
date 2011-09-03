@@ -1,0 +1,75 @@
+Sub fraud()
+'Fraud script v0.3; jj@csc.ee
+'Alt+F11 -> F7 -> Ctrl+V -> F5 -> Profit
+
+Crit1 = 1.1 ' na 10 % bolshe
+Crit2 = 100 ' na 100 min bolshe
+
+t = 0:
+f = 0:
+g = 1:
+Dim a():
+
+Do
+
+t = t + 1:
+Max = 0:
+For i = 1 To 15
+    If Max < Cells(t, i + 6) Then
+        Max = Cells(t, i + 6):
+    End If:
+Next i
+If Cells(t, 4) <> "" Then
+    last = t:
+End If:
+n = Cells(t, 22)
+If n > Crit1 * Max And n > Crit2 + Max And Cells(t, 4) = "" Then
+    If Max < 1 Then
+        Max = 1:
+    End If:
+    p = Round(n / Max, 1): Columns("W:W").ColumnWidth = 20
+    Cells(t, 23) = "x" & p & " Max=" & Max
+    Range(Cells(t, 1), Cells(t, 23)).Interior.ColorIndex = 3:
+    f = f + 1
+    ReDim Preserve a(f * 8):
+    For u = 1 To 8:
+        Select Case u:
+            Case Is < 5
+                a(g) = Cells(last, u):
+            Case 5:
+                a(g) = Cells(t, u):
+            Case 6:
+                a(g) = Max
+            Case 7:
+                a(g) = n:
+            Case 8:
+                a(g) = p:
+        End Select:
+        g = g + 1:
+    Next u
+Else:
+    Cells(t, 23) = "ok":
+End If:
+Loop While Cells(t, 6) <> ""
+    Cells(1, 23) = f & " frauds":
+    Cells(1, 23).Interior.ColorIndex = 3
+    For i = 1 To 5:
+        Cells(t + 1, i) = Cells(1, i):
+    Next i
+    Cells(t + 1, 6) = "Last Max":
+    Cells(t + 1, 7) = "Now"
+    Cells(t + 1, 8) = "x Ratio":
+    q = 1:
+    j = 1:
+    For i = 1 To f * 8
+        Cells(t + 2 + q, j) = a(i):
+        j = j + 1
+        If i Mod 8 = 0 Then
+            q = q + 1:
+            j = 1:
+        End If:
+    Next i:
+    For i = 1 To f
+        Cells(t + 2 + i, 2).NumberFormat = "#":
+    Next i:
+End Sub
