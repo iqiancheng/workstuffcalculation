@@ -79,7 +79,9 @@ public class FraudAnalyzer implements Runnable {
 
 	private void createReport(HSSFWorkbook outWb, List<Integer> errorRows) {
 		// TODO Auto-generated method stub
-		
+		/*
+		 * BUDEM DELATJ report
+		 */
 		
 	}
 
