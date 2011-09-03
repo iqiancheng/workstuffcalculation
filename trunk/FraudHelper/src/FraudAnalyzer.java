@@ -82,6 +82,7 @@ public class FraudAnalyzer implements Runnable {
 		/*
 		 * BUDEM DELATJ report
 		 */
+		System.out.println("Report");
 		
 	}
 
