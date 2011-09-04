@@ -17,7 +17,9 @@ import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddress;
         
       /**  
@@ -39,30 +41,31 @@ import org.apache.poi.ss.util.CellRangeAddress;
            * @param newSheet the sheet to create from the copy.
            * @param sheet the sheet to copy.
            */
-          public static void copySheets(HSSFSheet newSheet, HSSFSheet sheet){   
+          public static void copySheets(Sheet newSheet, Sheet sheet){   
               copySheets(newSheet, sheet, true);   
-          }   
+          }
+  
              
           /**
            * @param newSheet the sheet to create from the copy.
-           * @param sheet the sheet to copy.
+           * @param fromSheet the sheet to copy.
            * @param copyStyle true copy the style.
            */
-          public static void copySheets(HSSFSheet newSheet, HSSFSheet sheet, boolean copyStyle){   
+          public static void copySheets(Sheet newSheet, Sheet fromSheet, boolean copyStyle){   
               int maxColumnNum = 0;   
-              Map<Integer, HSSFCellStyle> styleMap = (copyStyle) ? new HashMap<Integer, HSSFCellStyle>() : null;   
-              for (int i = sheet.getFirstRowNum(); i <= sheet.getLastRowNum(); i++) {   
-                  HSSFRow srcRow = sheet.getRow(i);   
-                  HSSFRow destRow = newSheet.createRow(i);   
+              Map<Integer, CellStyle> styleMap = (copyStyle) ? new HashMap<Integer, CellStyle>() : null;   
+              for (int i = fromSheet.getFirstRowNum(); i <= fromSheet.getLastRowNum(); i++) {   
+                  Row srcRow = fromSheet.getRow(i);   
+                  Row destRow = newSheet.createRow(i);   
                   if (srcRow != null) {   
-                      ExcelUtil.copyRow(sheet, newSheet, srcRow, destRow, styleMap);   
+                      ExcelUtil.copyRow(fromSheet, newSheet, srcRow, destRow, styleMap);   
                       if (srcRow.getLastCellNum() > maxColumnNum) {   
                           maxColumnNum = srcRow.getLastCellNum();   
                       }   
                   }   
               }   
               for (int i = 0; i <= maxColumnNum; i++) {   
-                  newSheet.setColumnWidth(i, sheet.getColumnWidth(i));   
+                  newSheet.setColumnWidth(i, fromSheet.getColumnWidth(i));   
               }   
           }   
         
@@ -73,14 +76,14 @@ import org.apache.poi.ss.util.CellRangeAddress;
            * @param destRow the row to create.
            * @param styleMap -
            */
-          public static void copyRow(HSSFSheet srcSheet, HSSFSheet destSheet, HSSFRow srcRow, HSSFRow destRow, Map<Integer, HSSFCellStyle> styleMap) {   
+          public static void copyRow(Sheet srcSheet, Sheet destSheet, Row srcRow, Row destRow, Map<Integer, CellStyle> styleMap) {   
               // manage a list of merged zone in order to not insert two times a merged zone
             Set<CellRangeAddressWrapper> mergedRegions = new TreeSet<CellRangeAddressWrapper>();   
               destRow.setHeight(srcRow.getHeight());   
               // pour chaque row
               for (int j = srcRow.getFirstCellNum(); j <= srcRow.getLastCellNum(); j++) {   
-                  HSSFCell oldCell = srcRow.getCell(j);   // ancienne cell
-                  HSSFCell newCell = destRow.getCell(j);  // new cell 
+                  Cell oldCell = srcRow.getCell(j);   // ancienne cell
+                  Cell newCell = destRow.getCell(j);  // new cell 
                   if (oldCell != null) {   
                       if (newCell == null) {   
                           newCell = destRow.createCell(j);   
@@ -105,19 +108,29 @@ import org.apache.poi.ss.util.CellRangeAddress;
               }   
                  
           }   
+          /**
+           * @param srcSheet the sheet to copy.
+           * @param srcRow the row to copy.
+           * @param destSheet the sheet to create.           
+           * @param destRow the row to create.           
+           */
+          public static void copyRow(Sheet srcSheet, Row srcRow, Sheet destSheet,  Row destRow) {
+        	  // copies style also
+        	  copyRow(srcSheet, destSheet, srcRow, destRow, new HashMap<Integer, CellStyle>());           
+          }
              
           /**
            * @param oldCell
            * @param newCell
            * @param styleMap
            */
-          public static void copyCell(HSSFCell oldCell, HSSFCell newCell, Map<Integer, HSSFCellStyle> styleMap) {   
+          public static void copyCell(Cell oldCell, Cell newCell, Map<Integer, CellStyle> styleMap) {   
               if(styleMap != null) {   
                   if(oldCell.getSheet().getWorkbook() == newCell.getSheet().getWorkbook()){   
                       newCell.setCellStyle(oldCell.getCellStyle());   
                   } else{   
                       int stHashCode = oldCell.getCellStyle().hashCode();   
-                      HSSFCellStyle newCellStyle = styleMap.get(stHashCode);   
+                      CellStyle newCellStyle = styleMap.get(stHashCode);   
                       if(newCellStyle == null){   
                           newCellStyle = newCell.getSheet().getWorkbook().createCellStyle();   
                           newCellStyle.cloneStyleFrom(oldCell.getCellStyle());   
@@ -163,7 +176,7 @@ import org.apache.poi.ss.util.CellRangeAddress;
            * @param cellNum the num of the cell to copy.
            * @return the CellRangeAddress created.
            */
-          public static CellRangeAddress getMergedRegion(HSSFSheet sheet, int rowNum, short cellNum) {   
+          public static CellRangeAddress getMergedRegion(Sheet sheet, int rowNum, short cellNum) {   
               for (int i = 0; i < sheet.getNumMergedRegions(); i++) { 
                   CellRangeAddress merged = sheet.getMergedRegion(i);   
                   if (merged.isInRange(rowNum, cellNum)) {   
