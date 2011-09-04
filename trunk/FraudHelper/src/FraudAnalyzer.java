@@ -79,26 +79,60 @@ public class FraudAnalyzer implements Runnable {
 
 	private void createReport(HSSFWorkbook outWb, List<Integer> errorRows) {
 		// TODO Auto-generated method stub
-		/*
-		 * BUDEM DELATJ report
-		 */
-		System.out.println("Report");
+		
+		// create new sheet
+		Sheet reportSheet = outWb.createSheet("report");
+		if(!errorRows.isEmpty()) {
+			// create report
+			int i = 0;
+			for(Integer rowIndex: errorRows) {
+				Row newRow = reportSheet.createRow(i);
+				Row fromRow = outWb.getSheetAt(0).getRow(rowIndex);
+				Sheet fromSheet = outWb.getSheetAt(0);
+				ExcelUtil.copyRow(fromSheet, fromRow, reportSheet, newRow);
+				i++;
+			}
+		} else {
+			// report OK
+			Row firstRow = reportSheet.createRow(0);
+			Cell firstCell = firstRow.createCell(0);
+			firstCell.setCellValue("OK");
+			
+			CellStyle style = outWb.createCellStyle();
+		    style.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+		    style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		    Font font = outWb.createFont();
+		    font.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		    style.setFont(font);
+		    firstCell.setCellStyle(style);
+			
+			
+		}
+		
 		
 	}
-
+	
+	/**
+	 * Groups the rows in given sheet according to first cell	 * 
+	 * @param newSheet  working sheet with rows
+	 */
 	private void groupRows(HSSFSheet newSheet) {
 		// TODO Auto-generated method stub
 		int startRowPos = 0, endRowPos = 0;
+		/* colums from excel file */
 		String stationGroup = null, 
 		viiteNum = null, 
 		client = null, 
 		service = null;
 		
 		for(Row row: newSheet) {
+			/* skip first row with headers */
 			if(row.getRowNum() == 0)
 				continue;
+			/* if the first cell of row is NOT blank */
 			if(!row.getCell(0, Row.CREATE_NULL_AS_BLANK).
 					getStringCellValue().isEmpty()) {
+				/* retrieve data from row */
 				stationGroup = row.getCell(0, Row.CREATE_NULL_AS_BLANK)
 				.getStringCellValue();
 				viiteNum = row.getCell(1, Row.CREATE_NULL_AS_BLANK)
@@ -106,8 +140,9 @@ public class FraudAnalyzer implements Runnable {
 				client = row.getCell(2, Row.CREATE_NULL_AS_BLANK)
 				.getStringCellValue();
 				service = row.getCell(3, Row.CREATE_NULL_AS_BLANK)
-				.getStringCellValue();					
+				.getStringCellValue();				
 			} else {
+				/* fill empty row with  retrieved data */ 
 				row.getCell(0, Row.CREATE_NULL_AS_BLANK)
 				.setCellValue(stationGroup);
 				row.getCell(1, Row.CREATE_NULL_AS_BLANK)
@@ -116,19 +151,23 @@ public class FraudAnalyzer implements Runnable {
 				.setCellValue(client);
 				row.getCell(3, Row.CREATE_NULL_AS_BLANK)
 				.setCellValue(service);
+				/* empty line counter */
 				endRowPos++;
 				
 			}
 		}
 	}
-
+	
 	private List<Integer> processData(Sheet newSheet) {
 		// TODO Auto-generated method stub
-		// get data start index
+		
+		// list of error rows position indexes
 		List<Integer> errorRows = new ArrayList<Integer>();
+		// get data start column index
 		int dataStartColNum = ExcelUtil.getColNumStartsWith(
-				newSheet.getRow(0),
-				"Total");
+				newSheet.getRow(0), /* first row */
+				"Total"); // string to search
+		
 		if(dataStartColNum == -1)
 			try {
 				throw new InvalidPropertiesFormatException("Total not found");
@@ -138,27 +177,42 @@ public class FraudAnalyzer implements Runnable {
 			}
 				
 		for(Row row: newSheet) {
+			// skip first row with descriptions 
 			if(row.getRowNum() == 0)
 				continue;
+			// parse values from row 
 			double[] values = ExcelUtil.getDoubleValuesFromRow(
 					row,
 					dataStartColNum,
 					(int) row.getLastCellNum());
+			// some apache math library magic
 			DescriptiveStatistics stats = new DescriptiveStatistics(values);
+			// our new value is the last value in row
 			double newVal  = values[values.length - 1];
 			double max = stats.getMax();
+
+			// search criteria
+			int crit1 = this.options.getCritPersent();
+			double crit2 = (double) this.options.getMoreThan();
+
 			// if fraud found
-			if( newVal > (max * 1.1)  && (newVal > (max + 100.0)) ) {
+			if( newVal > (max * crit1 )  && (newVal > (max + crit2)) ) {
+				// add new cell with fraud 
 				Cell cellFraud = row.createCell(row.getLastCellNum());
 				cellFraud.setCellValue("FRAUD");
+				
+				//style manipulation
 				CellStyle style = newSheet.getWorkbook().createCellStyle();
 			    style.setFillForegroundColor(IndexedColors.RED.getIndex());
 			    style.setFillPattern(CellStyle.SOLID_FOREGROUND);
 				cellFraud.setCellStyle(style);
+				// store error rows
 				errorRows.add(row.getRowNum());
 			} else {
+				
 				Cell cellFraud = row.createCell(row.getLastCellNum());
 				cellFraud.setCellValue("OK");
+				
 				Workbook currWb = newSheet.getWorkbook();
 				CellStyle style = currWb.createCellStyle();
 			    style.setFillForegroundColor(IndexedColors.GREEN.getIndex());
