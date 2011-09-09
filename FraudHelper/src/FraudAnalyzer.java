@@ -190,13 +190,15 @@ public class FraudAnalyzer implements Runnable {
 			// our new value is the last value in row
 			double newVal  = values[values.length - 1];
 			double max = stats.getMax();
+			double prevVal = values[values.length - 2];
+			
 
 			// search criteria
 			int crit1 = this.options.getCritPersent();
 			double crit2 = (double) this.options.getMoreThan();
 
 			// if fraud found
-			if( newVal > (max * crit1 )  && (newVal > (max + crit2)) ) {
+			if( newVal > prevVal) { // newVal > (max * crit1 )  && (newVal > (max + crit2)) ) {
 				// add new cell with fraud 
 				Cell cellFraud = row.createCell(row.getLastCellNum());
 				cellFraud.setCellValue("FRAUD");
